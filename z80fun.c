@@ -1,11 +1,18 @@
+#include <inttypes.h>
+
 #include <avr/io.h>
 #include <avr/sfr_defs.h>
 #include <avr/pgmspace.h>
 
-#include <inttypes.h>
+
+#include "z80code/z80code.h"
+
 
 #define F_CPU 8000000UL
+#define BAUD 1200
+
 #include <util/delay.h>
+#include <util/setbaud.h>
 
 
 #define ADDR_LO_PIN PINA
@@ -33,8 +40,16 @@
 
 #define MREQ_PIN PD7
 
+#define ROM_PAGES 4
 
-const uint8_t rom[4][256] PROGMEM = 
+#define RAM_PAGES 1
+#define RAM_START 4
+
+#define MMIO_PAGE 7
+
+
+/*
+const uint8_t rom[ROM_PAGES][256] PROGMEM = 
 {
     0x3a, 0x01, 0x07, // LD A, (0701h)
     0xe6, 0x80,       // AND A, 080h
@@ -47,6 +62,9 @@ const uint8_t rom[4][256] PROGMEM =
     0x28, 0xf8,       // JR Z, -5
     0xc3, 0x00, 0x00  // JP 0000h
 };
+*/
+
+uint8_t ram[RAM_PAGES][256];
 
 
 int main ()
@@ -55,16 +73,13 @@ int main ()
 
     uint8_t control;
 
-    uint8_t ram[256];
-
 
     // *** setup clock port ***
 
-    // CTC mode, toggle OC on compare match, prescaler: clk/64
-    TCCR0 = _BV(WGM01) | _BV(COM00) | _BV(CS01) | _BV(CS00);
+    // CTC mode, toggle OC on compare match, no prescaling
+    TCCR0 = _BV(WGM01) | _BV(COM00) | _BV(CS00);
 
-    // compare value: 64
-    OCR0 = 64;
+    OCR0 = 16;
 
     // set PB0(OC0) as output pin
     DDRB |= _BV(0);
@@ -90,8 +105,8 @@ int main ()
     UCSRB = _BV(RXEN) | _BV(TXEN);
     UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0);
 
-    UBRRH = 416 / 256;
-    UBRRL = 416 % 256;
+    UBRRH = UBRRH_VALUE;
+    UBRRL = UBRRL_VALUE;
 
 
     // *** main loop ***
@@ -105,7 +120,7 @@ int main ()
 	    addr_lo = ADDR_LO_PIN;
 	    addr_hi = ADDR_HI_PIN & ADDR_HI_MAX;
 
-	    if ( addr_hi == 0x07 )
+	    if ( addr_hi == MMIO_PAGE )
 	    {
 	        if ( addr_lo == 0x00 )
 		{
@@ -118,17 +133,18 @@ int main ()
 		}
 	    }
 
-	    else if ( addr_hi == 0x04 )
+	    else if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
 	    {
-	        DATA_PORT = ram[addr_lo];
+	        DATA_PORT = ram[addr_hi - RAM_START][addr_lo];
 	    }
 
-	    else if ( addr_hi < 0x04 )
+	    else if ( addr_hi < ROM_PAGES )
 	    {
-	        DATA_PORT = pgm_read_byte(&(rom[addr_hi][addr_lo]));
+	        DATA_PORT = pgm_read_byte(&(z80code[addr_hi << 8 | addr_lo]));
 	    }
 
 	    DATA_DDR = 0xff;
+	    DEBUG_PORT |= _BV(DEBUG_PIN);
 
 	    loop_until_bit_is_set(CONTROL_PIN, RD_PIN);
 
@@ -141,12 +157,11 @@ int main ()
 	    addr_lo = ADDR_LO_PIN;
 	    addr_hi = ADDR_HI_PIN & ADDR_HI_MAX;
 
-	    if ( addr_hi == 0x07 )
+	    if ( addr_hi == MMIO_PAGE )
 	    {
 	        if ( addr_lo == 0x00 )
 		{
 		    UDR = DATA_PIN;
-		    DEBUG_PORT |= _BV(DEBUG_PIN);
 		}
 
 	        else if ( addr_lo == 0x01 )
@@ -155,9 +170,9 @@ int main ()
 		}
 	    }
 
-	    else if ( addr_hi == 0x04 )
+	    else if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
 	    {
-	        ram[addr_lo] = DATA_PIN;
+	        ram[addr_hi - RAM_START][addr_lo] = DATA_PIN;
 	    }
 
 	    loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
