@@ -12,10 +12,10 @@ This is of course just a fun project with little practical sense.
 
 This is the current status of the project:
 
-* The hardware is wired using a stripboard.
+* The hardware is wired on a breadbord.
 * There is AVR code that provides ROM, RAM and access to the USART.
 * There is a really basic Z80 platform support library
-* There is a Z80 code example that reads and writes string via the USART.
+* There is a Z80 example program that can read and write strings via the USART.
 
 ## Schematic
 
