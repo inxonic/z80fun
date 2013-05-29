@@ -40,10 +40,10 @@
 
 #define MREQ_PIN PD7
 
-#define ROM_PAGES 4
+#define ROM_PAGES 6
 
 #define RAM_PAGES 1
-#define RAM_START 4
+#define RAM_START 6
 
 #define MMIO_PAGE 7
 
