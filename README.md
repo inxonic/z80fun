@@ -69,6 +69,38 @@ This is my hardware setup:
 
 For simplicity I've left out the ISP port and the serial port.
 
+## Build requirements
+
+### Software requirements
+
+* GNU make
+* AVR-GCC cross compiler
+* SDCC
+* SRecord
+
+On a Fedora system simply type:
+    yum install make avr-gcc sdcc srecord
+
+### Remarks
+
+On my Fedora system the SDCC binaries are prefixed with sdcc-. You might need
+to adjust this if this isn't the case on your system.
+
+## Build instructions
+
+### Z80 part
+
+Build the Z80 platform support library:
+    make -C z80lib
+
+Build the Z80 native code example:
+    make -C z80code z80code.bin
+
+### AVR part
+
+Build the AVR part and link it with the Z80 ROM image:
+    make all
+
 ## Links
 
 CPU User Manual: http://www.z80.info/zip/z80cpu_um.pdf
