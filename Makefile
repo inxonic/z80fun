@@ -33,7 +33,7 @@ isp: hex
 	${UISP} ${UISPFLAGS} --upload --verify if=${HEXFILE}
 
 clean:
-	rm -f *.o ${ELFFILE} ${HEXFILE}
+	rm -f ${OBJECTS} ${ELFFILE} ${HEXFILE}
 
 
 # http://www.nongnu.org/avr-libc/user-manual/FAQ.html#faq_binarydata
