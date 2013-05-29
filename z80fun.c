@@ -48,22 +48,6 @@
 #define MMIO_PAGE 7
 
 
-/*
-const uint8_t rom[ROM_PAGES][256] PROGMEM = 
-{
-    0x3a, 0x01, 0x07, // LD A, (0701h)
-    0xe6, 0x80,       // AND A, 080h
-    0x28, 0xf8,       // JR Z, -5
-    0x3a, 0x00, 0x07, // LD A, (0700h)
-    0x3c,             // INC A
-    0x32, 0x00, 0x07, // LD (0700h), A
-    0x3a, 0x01, 0x07, // LD A, (0701h)
-    0xe6, 0x40,       // AND A, 040h
-    0x28, 0xf8,       // JR Z, -5
-    0xc3, 0x00, 0x00  // JP 0000h
-};
-*/
-
 uint8_t ram[RAM_PAGES][256];
 
 
@@ -115,6 +99,8 @@ int main ()
     {
 	control = CONTROL_PIN;
 
+	//DEBUG_PORT |= _BV(DEBUG_PIN);
+
 	if ( !( control & ( _BV(MREQ_PIN) | _BV(RD_PIN) ) ) )
 	{
 	    addr_lo = ADDR_LO_PIN;
@@ -144,7 +130,6 @@ int main ()
 	    }
 
 	    DATA_DDR = 0xff;
-	    DEBUG_PORT |= _BV(DEBUG_PIN);
 
 	    loop_until_bit_is_set(CONTROL_PIN, RD_PIN);
 
@@ -178,7 +163,7 @@ int main ()
 	    loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
 	}
 
-	DEBUG_PORT &= ~_BV(DEBUG_PIN);
+	//DEBUG_PORT &= ~_BV(DEBUG_PIN);
 
     }
 
