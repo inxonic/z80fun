@@ -8,6 +8,15 @@ the AVR will provide the rest like ROM, RAM and IO.
 
 This is of course just a fun project with little practical sense.
 
+## Status
+
+This is the current status of the project:
+
+* The hardware is wired using a stripboard.
+* There is AVR code that provides ROM, RAM and access to the USART.
+* There is a really basic Z80 platform support library
+* There is a Z80 code example that reads and writes string via the USART.
+
 ## Schematic
 
 This is my hardware setup:
@@ -69,6 +78,11 @@ This is my hardware setup:
 
 For simplicity I've left out the ISP port and the serial port.
 
+I'm using a STK200 compatible parallel port programmer.
+
+My current serial port implementation is build with an OPAmp
+and really needs improvement.
+
 ## Build requirements
 
 ### Software requirements
@@ -77,32 +91,47 @@ For simplicity I've left out the ISP port and the serial port.
 * AVR-GCC cross compiler
 * SDCC
 * SRecord
+* UISP
 
-On a Fedora system simply type:
-    yum install make avr-gcc sdcc srecord
+On a Fedora system simply type: `yum install make avr-gcc sdcc srecord uisp`
 
 ### Remarks
 
 On my Fedora system the SDCC binaries are prefixed with sdcc-. You might need
-to adjust this if this isn't the case on your system.
+to adjust this in the makefile if this isn't the case on your system.
 
 ## Build instructions
 
 ### Z80 part
 
 Build the Z80 platform support library:
-    make -C z80lib
+```
+make -C z80lib
+```
 
 Build the Z80 native code example:
-    make -C z80code z80code.bin
+```
+make -C z80code z80code.bin
+```
 
 ### AVR part
 
 Build the AVR part and link it with the Z80 ROM image:
-    make all
+```
+make
+```
+
+Flash the AVR:
+```
+make isp
+```
+
+You might have to tweak the makefile for other programmers or AVR chips.
 
 ## Links
 
 CPU User Manual: http://www.z80.info/zip/z80cpu_um.pdf
 
 ATmega8515 datasheet: www.atmel.com/Images/doc2512.pdf
+
+sdas manual: http://sdcc.svn.sourceforge.net/viewvc/sdcc/trunk/sdcc/sdas/doc/asxhtm.html
