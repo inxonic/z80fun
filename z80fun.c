@@ -97,74 +97,77 @@ int main ()
 
     for (;;)
     {
-	control = CONTROL_PIN;
+        control = CONTROL_PIN;
 
-	//DEBUG_PORT |= _BV(DEBUG_PIN);
+        //DEBUG_PORT |= _BV(DEBUG_PIN);
 
-	if ( !( control & ( _BV(MREQ_PIN) | _BV(RD_PIN) ) ) )
-	{
-	    addr_lo = ADDR_LO_PIN;
-	    addr_hi = ADDR_HI_PIN & ADDR_HI_MAX;
+        if ( !( control & ( _BV(MREQ_PIN) | _BV(RD_PIN) ) ) )
+        {
+            addr_lo = ADDR_LO_PIN;
+            addr_hi = ADDR_HI_PIN & ADDR_HI_MAX;
 
-	    if ( addr_hi == MMIO_PAGE )
-	    {
-	        if ( addr_lo == 0x00 )
-		{
-		    DATA_PORT = UDR;
-		}
+            if ( addr_hi == MMIO_PAGE )
+            {
+                if ( addr_lo == 0x00 )
+            {
+                DATA_PORT = UDR;
+            }
 
-	        else if ( addr_lo == 0x01 )
-		{
-		    DATA_PORT = UCSRA;
-		}
-	    }
+                else if ( addr_lo == 0x01 )
+            {
+                DATA_PORT = UCSRA;
+            }
+            }
 
-	    else if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
-	    {
-	        DATA_PORT = ram[addr_hi - RAM_START][addr_lo];
-	    }
+            else if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
+            {
+                DATA_PORT = ram[addr_hi - RAM_START][addr_lo];
+            }
 
-	    else if ( addr_hi < ROM_PAGES )
-	    {
-	        DATA_PORT = pgm_read_byte(&(z80code[addr_hi << 8 | addr_lo]));
-	    }
+            else if ( addr_hi < ROM_PAGES )
+            {
+                DATA_PORT = pgm_read_byte(&(z80code[addr_hi << 8 | addr_lo]));
+            }
 
-	    DATA_DDR = 0xff;
+            DATA_DDR = 0xff;
 
-	    loop_until_bit_is_set(CONTROL_PIN, RD_PIN);
+            loop_until_bit_is_set(CONTROL_PIN, RD_PIN);
 
-	    DATA_DDR = 0x00;
-	    DATA_PORT = 0x00;
-	}
+            DATA_DDR = 0x00;
+            DATA_PORT = 0x00;
+        }
 
-	else if ( !( control & ( _BV(MREQ_PIN) | _BV(WR_PIN) ) ) )
-	{
-	    addr_lo = ADDR_LO_PIN;
-	    addr_hi = ADDR_HI_PIN & ADDR_HI_MAX;
+        else if ( !( control & ( _BV(MREQ_PIN) | _BV(WR_PIN) ) ) )
+        {
+            addr_lo = ADDR_LO_PIN;
+            addr_hi = ADDR_HI_PIN & ADDR_HI_MAX;
 
-	    if ( addr_hi == MMIO_PAGE )
-	    {
-	        if ( addr_lo == 0x00 )
-		{
-		    UDR = DATA_PIN;
-		}
+            if ( addr_hi == MMIO_PAGE )
+            {
+                if ( addr_lo == 0x00 )
+            {
+                UDR = DATA_PIN;
+            }
 
-	        else if ( addr_lo == 0x01 )
-		{
-		    UCSRA = DATA_PIN & ~_BV(U2X) & ~_BV(MPCM);
-		}
-	    }
+                else if ( addr_lo == 0x01 )
+            {
+                UCSRA = DATA_PIN & ~_BV(U2X) & ~_BV(MPCM);
+            }
+            }
 
-	    else if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
-	    {
-	        ram[addr_hi - RAM_START][addr_lo] = DATA_PIN;
-	    }
+            else if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
+            {
+                ram[addr_hi - RAM_START][addr_lo] = DATA_PIN;
+            }
 
-	    loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
-	}
+            loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
+        }
 
-	//DEBUG_PORT &= ~_BV(DEBUG_PIN);
+        //DEBUG_PORT &= ~_BV(DEBUG_PIN);
 
     }
 
 }
+
+
+// vim: ts=4 sw=4 et
