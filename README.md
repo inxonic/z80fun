@@ -1,7 +1,5 @@
 # Z80Fun
 
-## Purpose
-
 The aim of this project is to build a minimalistic computer with Z80
 processor based on an Atmel AVR. That is the Z80 will run the code and
 the AVR will provide the rest like ROM, RAM and IO.
@@ -10,11 +8,9 @@ This is of course just a fun project with little practical sense.
 
 ## Status
 
-This is the current status of the project:
-
 * The hardware is wired on a breadbord.
 * There is AVR code that provides ROM, RAM and access to the USART.
-* The system has 6k Bytes of ROM and 256 Bytes of RAM.
+* The system has 6k Bytes of ROM and 384 Bytes of RAM.
 * There is a really basic Z80 platform support library.
 * There is a Z80 example program written in C that can read and write strings via the USART.
 
@@ -81,7 +77,7 @@ This is the circuitry:
                          _|_  _|_    _|_  _|_
 ```
 
-Note: I've changed the wiring a bit after commit 027f9489e4. One must not mix
+Note: I've changed the wiring a bit after commit `027f9489e4`. One must not mix
 older AVR code with the current wiring as there are conflicting output pins.
 
 For simplicity I've left out the ISP port and the serial port.

@@ -59,7 +59,7 @@
 	.org	0x40
 init:
 	;; Stack at the top of memory.
-	ld	sp,#0x1900
+	ld	sp,#0x1980
 
         ;; Initialise global variables
         call    gsinit

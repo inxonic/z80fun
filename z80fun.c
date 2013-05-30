@@ -41,18 +41,20 @@
 
 #define ROM_PAGES 0x18
 
-#define RAM_PAGES 1
-#define RAM_START 24
-
 #define MMIO_PAGE 0x1f
 
+#define RAM_ADDR 0x1800
+#define RAM_SIZE 0x180
 
-uint8_t ram[RAM_PAGES][256];
+
+uint8_t ram[RAM_SIZE];
 
 
 int main ()
 {
-    uint8_t addr_hi, addr_lo;
+    uint8_t page, addr_lo;
+
+    uint16_t addr;
 
     uint8_t control;
 
@@ -102,20 +104,21 @@ int main ()
         {
             if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
 
+            page = ADDR_HI_PIN;
             addr_lo = ADDR_LO_PIN;
-            addr_hi = ADDR_HI_PIN;
+            addr = page << 8 | addr_lo;
 
-            if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
+            if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
             {
-                DATA_PORT = ram[addr_hi - RAM_START][addr_lo];
+                DATA_PORT = ram[addr - RAM_ADDR];
             }
 
-            else if ( addr_hi < ROM_PAGES )
+            else if ( page < ROM_PAGES )
             {
-                DATA_PORT = pgm_read_byte(&(z80code[addr_hi << 8 | addr_lo]));
+                DATA_PORT = pgm_read_byte(&(z80code[addr]));
             }
 
-            else if ( addr_hi == MMIO_PAGE )
+            else if ( page == MMIO_PAGE )
             {
                 if ( addr_lo == 0x00 )
                 {
@@ -138,15 +141,16 @@ int main ()
 
         else if ( !( control & _BV(WR_PIN) ) )
         {
+            page = ADDR_HI_PIN;
             addr_lo = ADDR_LO_PIN;
-            addr_hi = ADDR_HI_PIN;
+            addr = page << 8 | addr_lo;
 
-            if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
+            if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
             {
-                ram[addr_hi - RAM_START][addr_lo] = DATA_PIN;
+                ram[addr - RAM_ADDR] = DATA_PIN;
             }
 
-            else if ( addr_hi == MMIO_PAGE )
+            else if ( page == MMIO_PAGE )
             {
                 if ( addr_lo == 0x00 )
                 {
