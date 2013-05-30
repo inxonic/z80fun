@@ -95,7 +95,7 @@ and really needs improvement.
 
 And that's how it looks like:
 
-![board image](../../../raw/boardimage/board.jpg)
+![board image](../../raw/boardimage/board.jpg)
 
 ## Build requirements
 
