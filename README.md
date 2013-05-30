@@ -91,6 +91,12 @@ I'm using a STK200 compatible parallel port programmer.
 My current serial port implementation is build with an OPAmp
 and really needs improvement.
 
+### Board
+
+And that's how it looks like:
+
+![board image](../../../raw/boardimage/board.jpg)
+
 ## Build requirements
 
 ### Software requirements
