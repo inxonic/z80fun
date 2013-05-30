@@ -39,18 +39,18 @@ _putchar_rr_s::
         ld      hl,#2
         add     hl,sp
 0$:
-        ld      a,(0x0701)
+        ld      a,(0x1f01)
         and     a,#0x20
         jr      z,0$
         ld      a,(hl)
-        ld      (0x0700),a
+        ld      (0x1f00),a
         ret
 
 _putchar_rr_dbs::
 0$:
-        ld      a,(0x0701)
+        ld      a,(0x1f01)
         and     a,#0x20
         jr      z,_putchar_rr_dbs
         ld      a,e
-        ld      (0x0700),a
+        ld      (0x1f00),a
         ret

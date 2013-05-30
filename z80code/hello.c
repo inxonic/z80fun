@@ -17,7 +17,7 @@ int talk ()
     for (;;)
     {
 
-        puts("Hello! What's your name?\r\n");
+        printf("%05d: Hello! What's your name?\r\n", count);
 
         gets(name);
 
