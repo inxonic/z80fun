@@ -14,23 +14,26 @@ This is the current status of the project:
 
 * The hardware is wired on a breadbord.
 * There is AVR code that provides ROM, RAM and access to the USART.
-* There is a really basic Z80 platform support library
-* There is a Z80 example program that can read and write strings via the USART.
+* The system has 6k Bytes of ROM and 256 Bytes of RAM.
+* There is a really basic Z80 platform support library.
+* There is a Z80 example program written in C that can read and write strings via the USART.
 
-## Schematic
+## Hardware
 
-This is my hardware setup:
+### Schematic
+
+This is the circuitry:
 
 ```
  __________________      (+)              (+)      __________________                      
 |                  |      |                |      |                  |
 |    ATmega8515    |      |                |      |     Z80 CPU      |
 |                  |      |                |      |                  |
-|         VCC [40] |------+                +------| [11] +5V         |
-|                  |                       |      |                  |
-|                  |                       +------| [25] /BUSREQ     |
-|                  |                       +------| [16] /INT        |
-|                  |                       +------| [17] /NMI        |
+|         VCC [40] |------+--+        +----+------| [11] +5V         |
+|                  |        _|_      _|_   |      |                  |
+|                  |        ___      ___   +------| [25] /BUSREQ     |
+|                  |    100n |   100n |    +------| [16] /INT        |
+|                  |        _|_      _|_   +------| [17] /NMI        |
 |                  |                       +------| [18] /HALT       |
 |                  |                       +------| [24] /WAIT       |
 |                  |                              |                  |
@@ -47,6 +50,9 @@ This is my hardware setup:
 |         PE1 [30] |------------------------------| [39] A9          |
 |         PE2 [29] |------------------------------| [40] A10         |
 |                  |                              |                  |
+|         PB2 [ 3] |------------------------------| [ 1] A11         |
+|         PB3 [ 4] |------------------------------| [ 2] A12         |
+|                  |                              |                  |
 |         PC0 [21] |------------------------------| [14] D0          |
 |         PC1 [22] |------------------------------| [15] D1          |
 |         PC2 [23] |------------------------------| [12] D2          |
@@ -58,11 +64,10 @@ This is my hardware setup:
 |                  |                              |                  |
 |     PB0/OC0 [ 1] |------------------------------| [ 6] CLK         |
 |                  |                              |                  |
-|    PD2/INT0 [39] |------------------------------| [22] /WR         |
-|    PD3/INT1 [39] |------------------------------| [21] /RD         |
-|         PD7 [39] |------------------------------| [19] /MREQ       |
+|         PD6 [16] |------------------------------| [22] /WR         |
+|         PD7 [17] |------------------------------| [21] /RD         |
 |                  |                              |                  |
-|         PD6 [39] |------------------+-----------| [26] /RESET      |
+|         PD4 [14] |------------------+-----------| [26] /RESET      |
 |                  |                  |           |                  |
 |                  |      LED         |           |                  |
 |         PD5 [39] |------|>|--+      |           |                  |
@@ -75,6 +80,9 @@ This is my hardware setup:
                           |    |      |    |
                          _|_  _|_    _|_  _|_
 ```
+
+Note: I've changed the wiring a bit after commit 027f9489e4. One must not mix
+older AVR code with the current wiring as there are conflicting output pins.
 
 For simplicity I've left out the ISP port and the serial port.
 
@@ -93,11 +101,14 @@ and really needs improvement.
 * SRecord
 * UISP
 
-On a Fedora system simply type: `yum install make avr-gcc sdcc srecord uisp`
+On a Fedora system simply type:
+```
+yum install make avr-gcc sdcc srecord uisp
+```
 
 ### Remarks
 
-On my Fedora system the SDCC binaries are prefixed with sdcc-. You might need
+On my Fedora system the SDCC binaries are prefixed with `sdcc-`. You might need
 to adjust this in the makefile if this isn't the case on your system.
 
 ## Build instructions

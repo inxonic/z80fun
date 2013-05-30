@@ -15,9 +15,10 @@
 #include <util/setbaud.h>
 
 
+#define DEBUG 0
+
 #define ADDR_LO_PIN PINA
-#define ADDR_HI_PIN PINE
-#define ADDR_HI_MAX 0x07
+#define ADDR_HI_PIN (PINE & 0x7 | (PINB & 0xc) << 1)
 
 #define DATA_PORT PORTC
 #define DATA_PIN PINC
@@ -25,7 +26,7 @@
 
 #define RESET_PORT PORTD
 #define RESET_DDR DDRD
-#define RESET_PIN PD6
+#define RESET_PIN PD4
 
 #define DEBUG_PORT PORTD
 #define DEBUG_DDR DDRD
@@ -35,17 +36,15 @@
 #define CONTROL_PIN PIND
 #define CONTROL_DDR DDRD
 
-#define WR_PIN PD2
-#define RD_PIN PD3
+#define WR_PIN PD6
+#define RD_PIN PD7
 
-#define MREQ_PIN PD7
-
-#define ROM_PAGES 6
+#define ROM_PAGES 0x18
 
 #define RAM_PAGES 1
-#define RAM_START 6
+#define RAM_START 24
 
-#define MMIO_PAGE 7
+#define MMIO_PAGE 0x1f
 
 
 uint8_t ram[RAM_PAGES][256];
@@ -74,7 +73,7 @@ int main ()
     RESET_PORT &= ~_BV(RESET_PIN);
     RESET_DDR |= _BV(RESET_PIN);
 
-    DEBUG_DDR |= _BV(DEBUG_PIN);
+    if ( DEBUG ) DEBUG_DDR |= _BV(DEBUG_PIN);
 
     _delay_ms(10);
     _delay_ms(10);
@@ -99,27 +98,14 @@ int main ()
     {
         control = CONTROL_PIN;
 
-        //DEBUG_PORT |= _BV(DEBUG_PIN);
-
-        if ( !( control & ( _BV(MREQ_PIN) | _BV(RD_PIN) ) ) )
+        if ( !( control & _BV(RD_PIN) ) )
         {
+            if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
+
             addr_lo = ADDR_LO_PIN;
-            addr_hi = ADDR_HI_PIN & ADDR_HI_MAX;
+            addr_hi = ADDR_HI_PIN;
 
-            if ( addr_hi == MMIO_PAGE )
-            {
-                if ( addr_lo == 0x00 )
-            {
-                DATA_PORT = UDR;
-            }
-
-                else if ( addr_lo == 0x01 )
-            {
-                DATA_PORT = UCSRA;
-            }
-            }
-
-            else if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
+            if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
             {
                 DATA_PORT = ram[addr_hi - RAM_START][addr_lo];
             }
@@ -127,6 +113,19 @@ int main ()
             else if ( addr_hi < ROM_PAGES )
             {
                 DATA_PORT = pgm_read_byte(&(z80code[addr_hi << 8 | addr_lo]));
+            }
+
+            else if ( addr_hi == MMIO_PAGE )
+            {
+                if ( addr_lo == 0x00 )
+                {
+                    DATA_PORT = UDR;
+                }
+
+                else if ( addr_lo == 0x01 )
+                {
+                    DATA_PORT = UCSRA;
+                }
             }
 
             DATA_DDR = 0xff;
@@ -137,33 +136,33 @@ int main ()
             DATA_PORT = 0x00;
         }
 
-        else if ( !( control & ( _BV(MREQ_PIN) | _BV(WR_PIN) ) ) )
+        else if ( !( control & _BV(WR_PIN) ) )
         {
             addr_lo = ADDR_LO_PIN;
-            addr_hi = ADDR_HI_PIN & ADDR_HI_MAX;
+            addr_hi = ADDR_HI_PIN;
 
-            if ( addr_hi == MMIO_PAGE )
-            {
-                if ( addr_lo == 0x00 )
-            {
-                UDR = DATA_PIN;
-            }
-
-                else if ( addr_lo == 0x01 )
-            {
-                UCSRA = DATA_PIN & ~_BV(U2X) & ~_BV(MPCM);
-            }
-            }
-
-            else if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
+            if ( addr_hi >= RAM_START && addr_hi < RAM_START + RAM_PAGES )
             {
                 ram[addr_hi - RAM_START][addr_lo] = DATA_PIN;
+            }
+
+            else if ( addr_hi == MMIO_PAGE )
+            {
+                if ( addr_lo == 0x00 )
+                {
+                    UDR = DATA_PIN;
+                }
+
+                else if ( addr_lo == 0x01 )
+                {
+                    UCSRA = DATA_PIN & ~_BV(U2X) & ~_BV(MPCM);
+                }
             }
 
             loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
         }
 
-        //DEBUG_PORT &= ~_BV(DEBUG_PIN);
+        if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
 
     }
 
