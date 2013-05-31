@@ -122,7 +122,7 @@ make -C z80lib
 
 Build the Z80 native code example:
 ```
-make -C z80code z80code.bin
+make -C z80code
 ```
 
 ### AVR part

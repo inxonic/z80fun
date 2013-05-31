@@ -1,5 +1,5 @@
 ;--------------------------------------------------------------------------
-;  crt0.s - Customized crt0.s for the Z80Fun computer
+;  crt0.s - Customized crt0.s for the Z80Fun system
 ;
 ;  This is a modified version of:
 ;  http://sourceforge.net/p/sdcc/code/HEAD/tree/tags/sdcc-3.2.0/sdcc/device/lib/z80/crt0.s
@@ -72,8 +72,8 @@ putchar:
 
 	.org	0x100
 init:
-	;; Stack at the top of memory.
-	ld	sp,#0x1980
+	.globl	__stack_loc
+	ld	sp,#__stack_loc
 
         ;; Initialise global variables
         call    gsinit
