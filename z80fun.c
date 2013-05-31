@@ -88,7 +88,7 @@ int main ()
     // *** setup serial port ***
 
     UCSRB = _BV(RXEN) | _BV(TXEN);
-    UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0);
+    UCSRC = _BV(URSEL) | _BV(USBS) | _BV(UCSZ1) | _BV(UCSZ0);
 
     UBRRH = UBRRH_VALUE;
     UBRRL = UBRRL_VALUE;

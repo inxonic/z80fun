@@ -18,8 +18,6 @@ This is of course just a fun project with little practical sense.
 
 ### Schematic
 
-This is the circuitry:
-
 ```
  __________________      (+)              (+)      __________________                      
 |                  |      |                |      |                  |
@@ -91,7 +89,7 @@ and really needs improvement.
 
 And that's how it looks like:
 
-![board image](../../raw/boardimage/board.jpg)
+![Board Image](../../raw/boardimage/board.jpg)
 
 ## Build requirements
 

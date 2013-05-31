@@ -1,5 +1,5 @@
 TARGETS=	
-OBJECTS=	crt0.rel putchar.rel getchar.rel
+OBJECTS=	crt0.rel getchar.rel
 
 
 AS=		sdcc-sdasz80

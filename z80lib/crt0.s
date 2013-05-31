@@ -42,7 +42,10 @@
 	jp	init
 
 	.org	0x08
+	cp	#0x01
+	jr	z,putchar
 	reti
+
 	.org	0x10
 	reti
 	.org	0x18
@@ -56,7 +59,18 @@
 	.org	0x38
 	reti
 
-	.org	0x40
+	.org	0x66
+	retn
+
+putchar:
+	ld	a,(0x1f01)
+	and	a,#0x20
+	jr	z,putchar
+	ld	a,l
+	ld	(0x1f00),a
+	ret
+
+	.org	0x100
 init:
 	;; Stack at the top of memory.
 	ld	sp,#0x1980

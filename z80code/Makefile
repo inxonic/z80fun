@@ -3,8 +3,8 @@ OBJECTS=
 
 CC=		sdcc-sdcc
 CFLAGS=		-mz80
-LDFLAGS=	-mz80 --code-loc 0x50 --data-loc 0x1800 --no-std-crt0
-LDLIBS=		../z80lib/crt0.rel ../z80lib/getchar.rel ../z80lib/putchar.rel
+LDFLAGS=	-mz80 --code-loc 0x200 --data-loc 0x1800 --no-std-crt0
+LDLIBS=		../z80lib/crt0.rel ../z80lib/getchar.rel
 
 
 all:		$(TARGETS)

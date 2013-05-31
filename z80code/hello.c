@@ -3,16 +3,12 @@
 #include <stdlib.h>
 
 
-const char hello[] = "Hello, ";
-
-
 int count = 32;
 
 
 int talk ()
 {
     char name[32];
-    char* buffer;
 
     for (;;)
     {
@@ -21,23 +17,15 @@ int talk ()
 
         gets(name);
 
-        buffer = malloc(strlen(hello) + strlen(name) + 10);
-
-        _itoa(count++, buffer, 10);
-        strcat(buffer, ": ");
-        strcat(buffer, hello);
-        strcat(buffer, name);
-        strcat(buffer, "!\r");
-
-        puts(buffer);
-        putchar('\r');
-        putchar('\n');
+        printf("%05d: Hello, %s!\r\n\r\n", count, name);
     }
 }
 
 int main ()
 {
     talk();
+
+    return 0;
 }
 
 
