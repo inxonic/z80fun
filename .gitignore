@@ -1,3 +1,4 @@
+# compiler/assembler/linker output files
 *.asm
 *.ihx
 *.lk
@@ -10,4 +11,9 @@
 *.bin
 *.lib
 *.rel
+
+# editor temporary files
+*.swp
+
+# auto generated source files
 z80rom.h

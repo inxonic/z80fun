@@ -66,6 +66,11 @@
 #define RAM_ADDR 0x1800
 #define RAM_SIZE 0x180
 
+#define IO_PORT_MASK 0xf2
+#define IO_PORT_PORT PORTB
+#define IO_PORT_PIN PINB
+#define IO_PORT_DDR DDRB
+
 
 uint8_t ram[RAM_SIZE];
 
@@ -149,6 +154,21 @@ int main ()
                 {
                     DATA_PORT = UCSRA;
                 }
+
+                else if ( addr_lo == 0x08 )
+                {
+                    DATA_PORT = IO_PORT_PORT & IO_PORT_MASK;
+                }
+
+                else if ( addr_lo == 0x09 )
+                {
+                    DATA_PORT = IO_PORT_DDR & IO_PORT_MASK;
+                }
+
+                else if ( addr_lo == 0x0a )
+                {
+                    DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
+                }
             }
 
             DATA_DDR = 0xff;
@@ -180,6 +200,16 @@ int main ()
                 else if ( addr_lo == 0x01 )
                 {
                     UCSRA = DATA_PIN & ~_BV(U2X) & ~_BV(MPCM);
+                }
+
+                else if ( addr_lo == 0x08 )
+                {
+                    IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
+                }
+
+                else if ( addr_lo == 0x09 )
+                {
+                    IO_PORT_DDR = IO_PORT_DDR & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
                 }
             }
 

@@ -11,21 +11,32 @@ without any warranty.
 #include <stdlib.h>
 
 
-int count = 32;
+static unsigned char count = 32;
 
 
 int talk ()
 {
     char name[32];
 
+    __asm
+        ld a,#0xff
+        ld (0x1f09),a
+    __endasm;
+
     for (;;)
     {
-
         printf("%05d: Hello! What's your name?\r\n", count);
 
         gets(name);
 
         printf("%05d: Hello, %s!\r\n\r\n", count, name);
+
+        count += 2;
+
+        __asm
+            ld a,(#_count)
+            ld (0x1f08),a
+        __endasm;
     }
 }
 
