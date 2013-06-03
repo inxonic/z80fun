@@ -1,0 +1,13 @@
+*.asm
+*.ihx
+*.lk
+*.lst
+*.map
+*.noi
+*.sym
+*.elf
+*.o
+*.bin
+*.lib
+*.rel
+z80rom.h
