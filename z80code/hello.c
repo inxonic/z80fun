@@ -19,8 +19,7 @@ int talk ()
     char name[32];
 
     __asm
-        ld a,#0xff
-        ld (0x1f09),a
+        ei
     __endasm;
 
     for (;;)
@@ -32,11 +31,6 @@ int talk ()
         printf("%05d: Hello, %s!\r\n\r\n", count, name);
 
         count += 2;
-
-        __asm
-            ld a,(#_count)
-            ld (0x1f08),a
-        __endasm;
     }
 }
 
@@ -48,4 +42,4 @@ int main ()
 }
 
 
-// vim: ts=4 sw=4 et
+// vim: et si sw=4 ts=4

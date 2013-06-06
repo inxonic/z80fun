@@ -56,8 +56,19 @@
 	reti
 	.org	0x30
 	reti
+
 	.org	0x38
-	reti
+	push	af
+	ld	(0x1f10),a
+	ld	a,(0x1f08)
+	inc	a
+	inc	a
+	ld	(0x1f08),a
+	ld	a,#0x02
+	ld	(0x1f09),a
+	pop	af
+	ei
+	ret
 
 	.org	0x66
 	retn
@@ -74,6 +85,7 @@ putchar:
 init:
 	.globl	__stack_loc
 	ld	sp,#__stack_loc
+	im	1
 
         ;; Initialise global variables
         call    gsinit

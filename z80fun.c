@@ -23,6 +23,9 @@
 #include <avr/io.h>
 #include <avr/sfr_defs.h>
 #include <avr/pgmspace.h>
+#include <avr/interrupt.h>
+
+#include <util/atomic.h>
 
 
 #include "z80rom.h"
@@ -35,7 +38,7 @@
 #include <util/setbaud.h>
 
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define ADDR_LO_PIN PINA
 #define ADDR_HI_PIN (PINE & 0x7 | (PINB & 0xc) << 1)
@@ -66,10 +69,14 @@
 #define RAM_ADDR 0x1800
 #define RAM_SIZE 0x180
 
-#define IO_PORT_MASK 0xf2
+#define IO_PORT_MASK 0x42
 #define IO_PORT_PORT PORTB
 #define IO_PORT_PIN PINB
 #define IO_PORT_DDR DDRB
+
+#define INTR_PORT PORTD
+#define INTR_DDR DDRD
+#define INTR_PIN PD3
 
 
 uint8_t ram[RAM_SIZE];
@@ -84,6 +91,9 @@ int main ()
     uint8_t control;
 
 
+    if (DEBUG) DEBUG_DDR |= _BV(DEBUG_PIN);
+
+
     // *** setup clock port ***
 
     // CTC mode, toggle OC on compare match, no prescaling
@@ -92,15 +102,39 @@ int main ()
     OCR0 = 16;
 
     // set PB0(OC0) as output pin
-    DDRB |= _BV(0);
+    DDRB |= _BV(PB0);
+
+
+    // *** setup interrupt timer ***
+
+    // CTC mode, prescaling clk/256
+    TCCR1B = _BV(WGM12) | _BV(CS12);
+
+    OCR1AH = 16000UL / 256;
+    OCR1AL = 16000UL % 256;
+
+    TIMSK |= _BV(OCIE1A);
 
     
-    // *** setup control bus ports ***
+    // *** setup serial port ***
+
+    UCSRB = _BV(RXEN) | _BV(TXEN);
+    UCSRC = _BV(URSEL) | _BV(USBS) | _BV(UCSZ1) | _BV(UCSZ0);
+
+    UBRRH = UBRRH_VALUE;
+    UBRRL = UBRRL_VALUE;
+
+
+    // *** setup interrupt pin ***
+    
+    INTR_PORT |= _BV(INTR_PIN);
+    INTR_DDR |= _BV(INTR_PIN);
+
+
+    // *** setup and release reset pin ***
 
     RESET_PORT &= ~_BV(RESET_PIN);
     RESET_DDR |= _BV(RESET_PIN);
-
-    if ( DEBUG ) DEBUG_DDR |= _BV(DEBUG_PIN);
 
     _delay_ms(10);
     _delay_ms(10);
@@ -110,13 +144,9 @@ int main ()
     RESET_PORT |= _BV(RESET_PIN);
 
 
-    // *** setup serial port ***
-
-    UCSRB = _BV(RXEN) | _BV(TXEN);
-    UCSRC = _BV(URSEL) | _BV(USBS) | _BV(UCSZ1) | _BV(UCSZ0);
-
-    UBRRH = UBRRH_VALUE;
-    UBRRL = UBRRL_VALUE;
+    // *** enable interrupts ***
+    
+    sei();
 
 
     // *** main loop ***
@@ -127,7 +157,7 @@ int main ()
 
         if ( !( control & _BV(RD_PIN) ) )
         {
-            if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
+            //if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
 
             page = ADDR_HI_PIN;
             addr_lo = ADDR_LO_PIN;
@@ -169,6 +199,12 @@ int main ()
                 {
                     DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
                 }
+
+                else if ( addr_lo == 0x10 )
+                {
+                    DATA_PORT = (bit_is_set(INTR_PORT, INTR_PIN) ? _BV(1) : 0)
+                        | (bit_is_set(SREG, SREG_I) ? _BV(0) : 0);
+                }
             }
 
             DATA_DDR = 0xff;
@@ -204,23 +240,45 @@ int main ()
 
                 else if ( addr_lo == 0x08 )
                 {
-                    IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
+                    //IO_PORT_PORT could be same as INTR_PORT
+                    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+                    {
+                        IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
+                    }
+
                 }
 
                 else if ( addr_lo == 0x09 )
                 {
+                    if ( DEBUG ) DEBUG_PORT ^= _BV(DEBUG_PIN);
+
                     IO_PORT_DDR = IO_PORT_DDR & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
+                }
+
+                else if ( addr_lo == 0x10 )
+                {
+                    INTR_PORT |= _BV(INTR_PIN);
+                    sei();
                 }
             }
 
             loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
         }
 
-        if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
+        //if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
 
     }
 
 }
 
 
-// vim: ts=4 sw=4 et
+ISR(BADISR_vect, ISR_NAKED)
+{
+    INTR_PORT &= ~_BV(INTR_PIN);
+
+    //leave interrupts disabled
+    __asm volatile("ret"::);
+}
+
+
+// vim: et si sw=4 ts=4
