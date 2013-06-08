@@ -38,7 +38,7 @@
 #include <util/setbaud.h>
 
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define ADDR_LO_PIN PINA
 #define ADDR_HI_PIN (PINE & 0x7 | (PINB & 0xc) << 1)
@@ -99,7 +99,7 @@ int main ()
     // CTC mode, toggle OC on compare match, no prescaling
     TCCR0 = _BV(WGM01) | _BV(COM00) | _BV(CS00);
 
-    OCR0 = 16;
+    OCR0 = 32;
 
     // set PB0(OC0) as output pin
     DDRB |= _BV(PB0);
@@ -131,6 +131,14 @@ int main ()
     INTR_DDR |= _BV(INTR_PIN);
 
 
+    // *** setup interrupts for RD and WR pins
+
+    MCUCR |= _BV(ISC11) | _BV(ISC00);
+    GICR |= _BV(INT1) | _BV(INT0);
+
+    sei();
+
+
     // *** setup and release reset pin ***
 
     RESET_PORT &= ~_BV(RESET_PIN);
@@ -148,121 +156,127 @@ int main ()
 
     for (;;)
     {
-        control = CONTROL_PIN;
+    }
+}
 
-        if ( !( control & _BV(RD_PIN) ) )
+
+ISR(INT0_vect)
+{
+    uint8_t page, addr_lo;
+
+    uint16_t addr;
+
+
+    if ( !( CONTROL_PIN & _BV(RD_PIN) ) )
+    {
+        page = ADDR_HI_PIN;
+        addr_lo = ADDR_LO_PIN;
+        addr = page << 8 | addr_lo;
+
+        if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
         {
-            //if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
-
-            page = ADDR_HI_PIN;
-            addr_lo = ADDR_LO_PIN;
-            addr = page << 8 | addr_lo;
-
-            if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
-            {
-                DATA_PORT = ram[addr - RAM_ADDR];
-            }
-
-            else if ( page < ROM_PAGES )
-            {
-                DATA_PORT = pgm_read_byte(&(z80rom[addr]));
-            }
-
-            else if ( page == MMIO_PAGE )
-            {
-                if ( addr_lo == 0x00 )
-                {
-                    DATA_PORT = UDR;
-                }
-
-                else if ( addr_lo == 0x01 )
-                {
-                    DATA_PORT = UCSRA;
-                }
-
-                else if ( addr_lo == 0x08 )
-                {
-                    DATA_PORT = IO_PORT_PORT & IO_PORT_MASK;
-                }
-
-                else if ( addr_lo == 0x09 )
-                {
-                    DATA_PORT = IO_PORT_DDR & IO_PORT_MASK;
-                }
-
-                else if ( addr_lo == 0x0a )
-                {
-                    DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
-                }
-
-                else if ( addr_lo == 0x10 )
-                {
-                    DATA_PORT = (bit_is_set(INTR_PORT, INTR_PIN) ? _BV(1) : 0)
-                        | (bit_is_set(SREG, SREG_I) ? _BV(0) : 0);
-                }
-            }
-
-            DATA_DDR = 0xff;
-
-            loop_until_bit_is_set(CONTROL_PIN, RD_PIN);
-
-            DATA_DDR = 0x00;
-            DATA_PORT = 0x00;
+            DATA_PORT = ram[addr - RAM_ADDR];
         }
 
-        else if ( !( control & _BV(WR_PIN) ) )
+        else if ( page < ROM_PAGES )
         {
-            page = ADDR_HI_PIN;
-            addr_lo = ADDR_LO_PIN;
-            addr = page << 8 | addr_lo;
-
-            if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
-            {
-                ram[addr - RAM_ADDR] = DATA_PIN;
-            }
-
-            else if ( page == MMIO_PAGE )
-            {
-                if ( addr_lo == 0x00 )
-                {
-                    UDR = DATA_PIN;
-                }
-
-                else if ( addr_lo == 0x01 )
-                {
-                    UCSRA = DATA_PIN & ~_BV(U2X) & ~_BV(MPCM);
-                }
-
-                else if ( addr_lo == 0x08 )
-                {
-                    //IO_PORT_PORT could be same as INTR_PORT
-                    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-                    {
-                        IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
-                    }
-
-                }
-
-                else if ( addr_lo == 0x09 )
-                {
-                    if ( DEBUG ) DEBUG_PORT ^= _BV(DEBUG_PIN);
-
-                    IO_PORT_DDR = IO_PORT_DDR & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
-                }
-
-                else if ( addr_lo == 0x10 )
-                {
-                    INTR_PORT |= _BV(INTR_PIN);
-                    sei();
-                }
-            }
-
-            loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
+            DATA_PORT = pgm_read_byte(&(z80rom[addr]));
         }
 
-        //if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
+        else if ( page == MMIO_PAGE )
+        {
+            if ( addr_lo == 0x00 )
+            {
+                DATA_PORT = UDR;
+            }
+
+            else if ( addr_lo == 0x01 )
+            {
+                DATA_PORT = UCSRA;
+            }
+
+            else if ( addr_lo == 0x08 )
+            {
+                DATA_PORT = IO_PORT_PORT & IO_PORT_MASK;
+            }
+
+            else if ( addr_lo == 0x09 )
+            {
+                DATA_PORT = IO_PORT_DDR & IO_PORT_MASK;
+            }
+
+            else if ( addr_lo == 0x0a )
+            {
+                DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
+            }
+
+            else if ( addr_lo == 0x10 )
+            {
+                DATA_PORT = (bit_is_set(INTR_PORT, INTR_PIN) ? _BV(1) : 0)
+                    | (bit_is_set(SREG, SREG_I) ? _BV(0) : 0);
+            }
+        }
+
+        DATA_DDR = 0xff;
+    }
+
+    else
+    {
+        DATA_DDR = 0x00;
+        DATA_PORT = 0x00;
+    }
+
+}
+
+
+ISR(INT1_vect)
+{
+    uint8_t page, addr_lo;
+
+    uint16_t addr;
+
+
+    //if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
+
+    page = ADDR_HI_PIN;
+    addr_lo = ADDR_LO_PIN;
+    addr = page << 8 | addr_lo;
+
+    if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
+    {
+        ram[addr - RAM_ADDR] = DATA_PIN;
+    }
+
+    else if ( page == MMIO_PAGE )
+    {
+        if ( addr_lo == 0x00 )
+        {
+            UDR = DATA_PIN;
+        }
+
+        else if ( addr_lo == 0x01 )
+        {
+            UCSRA = DATA_PIN & ~_BV(U2X) & ~_BV(MPCM);
+        }
+
+        else if ( addr_lo == 0x08 )
+        {
+            IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
+        }
+
+        else if ( addr_lo == 0x09 )
+        {
+            IO_PORT_DDR = IO_PORT_DDR & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
+        }
+
+        else if ( addr_lo == 0x10 )
+        {
+            INTR_PORT |= _BV(INTR_PIN);
+        }
 
     }
+
+    //if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
 
 }
 
@@ -270,9 +284,7 @@ int main ()
 ISR(BADISR_vect, ISR_NAKED)
 {
     INTR_PORT &= ~_BV(INTR_PIN);
-
-    //leave interrupts disabled
-    __asm volatile("ret"::);
+    reti();
 }
 
 
