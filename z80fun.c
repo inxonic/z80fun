@@ -144,11 +144,6 @@ int main ()
     RESET_PORT |= _BV(RESET_PIN);
 
 
-    // *** enable interrupts ***
-    
-    sei();
-
-
     // *** main loop ***
 
     for (;;)

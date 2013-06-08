@@ -19,6 +19,7 @@ int talk ()
     char name[32];
 
     __asm
+        ld  (0x1f10),a
         ei
     __endasm;
 
