@@ -59,8 +59,8 @@
 #define CONTROL_PIN PIND
 #define CONTROL_DDR DDRD
 
-#define WR_PIN PD6
-#define RD_PIN PD7
+#define RD_PIN PD2
+#define WR_PIN PD3
 
 #define ROM_PAGES 0x18
 
@@ -76,7 +76,7 @@
 
 #define INTR_PORT PORTD
 #define INTR_DDR DDRD
-#define INTR_PIN PD3
+#define INTR_PIN PD6
 
 
 uint8_t ram[RAM_SIZE];
@@ -142,11 +142,6 @@ int main ()
     _delay_ms(10);
 
     RESET_PORT |= _BV(RESET_PIN);
-
-
-    // *** enable interrupts ***
-    
-    sei();
 
 
     // *** main loop ***
