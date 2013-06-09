@@ -10,6 +10,8 @@ without any warranty.
 #include <string.h>
 #include <stdlib.h>
 
+#include <z80lib.h>
+
 
 static unsigned char count = 32;
 
@@ -18,12 +20,13 @@ int talk ()
 {
     char name[32];
 
-    __asm
-        ld  a,#0x02
-        ld  (0x1f09),a
-        ld  (0x1f10),a
-        ei
-    __endasm;
+
+    IO_PORT_DDR = 0x02;
+
+    INTR_CTRL = 0x00;
+
+    ei();
+
 
     for (;;)
     {
@@ -42,6 +45,14 @@ int main ()
     talk();
 
     return 0;
+}
+
+
+void test(void) __interrupt
+{
+    __asm
+        ld      a,(0x1f0a)
+    __endasm;
 }
 
 

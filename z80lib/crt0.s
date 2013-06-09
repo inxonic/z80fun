@@ -36,8 +36,9 @@
         .module crt0
        	.globl	_main
 
-	.globl	_INT0_vect
-	.globl	_TIMER1_COMPA_vect
+	.globl	_INT0_vect_crt
+	.globl	_INT1_vect_crt
+	.globl	_TIMER1_COMPA_vect_crt
 
 	.area	_HEADER (ABS)
 	;; Reset vector
@@ -65,12 +66,17 @@
 	ld	a,(0x1f10)
 	cp	#1
 	jr	nz,1$
-	call	_INT0_vect
+	call	_INT0_vect_crt
 	jr	99$
 1$:	
+	cp	#2
+	jr	nz,2$
+	call	_INT1_vect_crt
+	jr	99$
+2$:	
 	cp	#4
 	jr	nz,99$
-	call	_TIMER1_COMPA_vect
+	call	_TIMER1_COMPA_vect_crt
 99$:
 	pop	af
 	ei
@@ -101,6 +107,25 @@ init:
 	;; Ordering of segments for the linker.
 	.area	_HOME
 	.area	_CODE
+
+	.area	_ISRSTART_INT0
+_INT0_vect_crt::
+	.area	_ISR_INT0
+	.area	_ISRFINAL_INT0
+	ret
+
+	.area	_ISRSTART_INT1
+_INT1_vect_crt::
+	.area	_ISR_INT1
+	.area	_ISRFINAL_INT1
+	ret
+
+	.area	_ISRSTART_TIMER1_COMPA
+_TIMER1_COMPA_vect_crt::
+	.area	_ISR_TIMER1_COMPA
+	.area	_ISRFINAL_TIMER1_COMPA
+	ret
+
         .area   _GSINIT
         .area   _GSFINAL
 

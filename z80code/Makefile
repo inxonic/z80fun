@@ -5,33 +5,29 @@
 
 
 TARGETS=	hello.ihx
-OBJECTS=	hello.rel
+HELLO_OBJECTS=	hello.rel isr.rel
+
+AS=		sdcc-sdasz80
 
 CC=		sdcc-sdcc
 
-CFLAGS=		-mz80
+CFLAGS=		-mz80 -I../z80lib
 LDFLAGS=	-mz80 --code-loc 0x200 --data-loc 0x1800 -Wl"-g __stack_loc = 0x1980" --no-std-crt0
 LDLIBS=		-L../z80lib -lz80lib ../z80lib/crt0.rel
 
 
 all:		$(TARGETS)
 
+hello.ihx:	$(HELLO_OBJECTS)
+
 clean:
-		$(RM) z80code.bin $(TARGETS) $(OBJECTS) \
-		    $(addsuffix .asm,$(basename $(OBJECTS))) \
-		    $(addsuffix .lst,$(basename $(OBJECTS))) \
-		    $(addsuffix .map,$(basename $(OBJECTS))) \
-		    $(addsuffix .noi,$(basename $(OBJECTS))) \
-		    $(addsuffix .sym,$(basename $(OBJECTS))) \
-		    $(addsuffix .lk,$(basename $(OBJECTS)))
+		$(RM) $(TARGETS) *.rel *.asm *.lst *.map *.noi *.sym *.lk
 
 %.ihx : %.rel
 		$(CC) $(LDFLAGS) $(LOADLIBES) $(LDLIBS) $^ -o $@
 
+%.rel : %.s
+		$(AS) $(ASFLAGS) -los $@ $<
+
 %.rel : %.c
 		$(CC) $(CFLAGS) -c $<
-
-
-z80code.bin:	$(TARGETS)
-		srec_cat -Disable_Sequence_Warnings $(firstword $(TARGETS)) \
-		    -Intel -Fill 0 0 0x1800 -Output z80code.bin -Binary

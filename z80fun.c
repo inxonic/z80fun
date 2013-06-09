@@ -18,9 +18,8 @@
 */
 
 
-#include <stdbool.h>
-
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include <avr/io.h>
 #include <avr/sfr_defs.h>
@@ -165,8 +164,6 @@ int main ()
         {
             ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
             {
-                //if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
-
                 page = ADDR_HI_PIN;
                 addr_lo = ADDR_LO_PIN;
                 addr = page << 8 | addr_lo;
@@ -205,7 +202,7 @@ int main ()
 
                     else if ( addr_lo == 0x0a )
                     {
-                        //if ( DEBUG ) DEBUG_PORT ^= _BV(DEBUG_PIN);
+                        if ( DEBUG ) DEBUG_PORT ^= _BV(DEBUG_PIN);
 
                         DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
                     }
@@ -214,6 +211,8 @@ int main ()
                     {
                         DATA_PORT = last_interrupt;
                         enable_interrupts = true;
+
+                        //if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
                     }
                 }
 
