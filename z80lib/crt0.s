@@ -36,6 +36,9 @@
         .module crt0
        	.globl	_main
 
+	.globl	_INT0_vect
+	.globl	_TIMER1_COMPA_vect
+
 	.area	_HEADER (ABS)
 	;; Reset vector
 	.org 	0
@@ -59,13 +62,16 @@
 
 	.org	0x38
 	push	af
-	ld	(0x1f10),a
-	ld	a,(0x1f08)
-	inc	a
-	inc	a
-	ld	(0x1f08),a
-	ld	a,#0x02
-	ld	(0x1f09),a
+	ld	a,(0x1f10)
+	cp	#1
+	jr	nz,1$
+	call	_INT0_vect
+	jr	99$
+1$:	
+	cp	#4
+	jr	nz,99$
+	call	_TIMER1_COMPA_vect
+99$:
 	pop	af
 	ei
 	ret
