@@ -81,7 +81,11 @@
 #define INTR_PIN PD3
 
 
-static volatile uint8_t last_interrupt, isr_temp;
+// used to memorize the last intterupt
+register uint8_t last_interrupt __asm__ ("r2");
+
+// temporary register used by the ISR
+register uint8_t isr_tmp_register __asm__ ("r3");
 
 
 uint8_t ram[RAM_SIZE];
@@ -212,7 +216,8 @@ int main ()
 
                     else if ( addr_lo == 0x10 )
                     {
-                        DATA_PORT = last_interrupt;
+                        __asm__ volatile ( "out %0,%1" : : "I" (_SFR_IO_ADDR(DATA_PORT)), "r" (last_interrupt) );
+
                         enable_interrupts = true;
                     }
                 }
@@ -284,6 +289,11 @@ int main ()
 
         //if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
 
+        __asm__ volatile ( "mov %0,%1" : "=r" (data) : "r" (last_interrupt) );
+
+        if ( DEBUG && data == INT0_vect_num ) DEBUG_PORT |= _BV(DEBUG_PIN);
+        else if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
+
     }
 
 }
@@ -294,13 +304,13 @@ ISR(vector, ISR_NAKED) \
 { \
     __asm__ \
     ( \
-        "sts isr_temp, r16"        "\n\t" \
-        "ldi r16, %0"              "\n\t" \
-        "sts last_interrupt, r16"  "\n\t" \
-        "lds r16, isr_temp"        "\n\t" \
-        "cbi %1, %2"               "\n\t" \
-        "ret"                      "\n\t" \
-        : \
+        "mov %0, r16" "\n\t" \
+        "ldi r16, %2" "\n\t" \
+        "mov %1, r16" "\n\t" \
+        "mov r16, %0" "\n\t" \
+        "cbi %3, %4"  "\n\t" \
+        "ret"         "\n\t" \
+        : "=r" (isr_tmp_register), "=r" (last_interrupt) \
         : "I" (vector ## _num), "I" (_SFR_IO_ADDR(INTR_PORT)), "I" (INTR_PIN)  \
     ); \
 }
