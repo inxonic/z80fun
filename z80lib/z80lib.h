@@ -10,6 +10,8 @@ without any warranty.
 #define ei() __asm__("ei")
 
 
+extern volatile unsigned char IO_PORT_PORT;
 extern volatile unsigned char IO_PORT_DDR;
+extern volatile unsigned char IO_PORT_PIN;
 
 extern volatile unsigned char INTR_CTRL;

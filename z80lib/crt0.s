@@ -36,10 +36,6 @@
         .module crt0
        	.globl	_main
 
-	.globl	_INT0_vect_crt
-	.globl	_INT1_vect_crt
-	.globl	_TIMER1_COMPA_vect_crt
-
 	.area	_HEADER (ABS)
 	;; Reset vector
 	.org 	0
@@ -47,7 +43,7 @@
 
 	.org	0x08
 	cp	#0x01
-	jr	z,putchar
+	jp	z,putchar
 	reti
 
 	.org	0x10
@@ -62,36 +58,122 @@
 	reti
 
 	.org	0x38
+
+__rst38_vector::
+
 	push	af
-	ld	a,(0x1f10)
+	ld	a, (0x1f10)
+
 	cp	#1
-	jr	nz,1$
-	call	_INT0_vect_crt
-	jr	99$
-1$:	
+	jr	nz, 01$
+	pop	af
+	jp	__int01_vector_addr
+
+01$:
 	cp	#2
-	jr	nz,2$
-	call	_INT1_vect_crt
-	jr	99$
-2$:	
+	jr	nz, 02$
+	pop	af
+	jp	__int02_vector_addr
+
+02$:
+	cp	#3
+	jr	nz, 03$
+	pop	af
+	jp	__int03_vector_addr
+
+03$:
 	cp	#4
-	jr	nz,99$
-	call	_TIMER1_COMPA_vect_crt
-99$:
+	jr	nz, 04$
+	pop	af
+	jp	__int04_vector_addr
+
+04$:
+	cp	#5
+	jr	nz, 05$
+	pop	af
+	jp	__int05_vector_addr
+
+	;; save some space for the NMI vector
+	.blkb	0x40
+
+05$:
+	cp	#6
+	jr	nz, 06$
+	pop	af
+	jp	__int06_vector_addr
+
+06$:
+	cp	#7
+	jr	nz, 07$
+	pop	af
+	jp	__int07_vector_addr
+
+07$:
+	cp	#8
+	jr	nz, 08$
+	pop	af
+	jp	__int08_vector_addr
+
+08$:
+	cp	#9
+	jr	nz, 09$
+	pop	af
+	jp	__int09_vector_addr
+
+09$:
+	cp	#10
+	jr	nz, 10$
+	pop	af
+	jp	__int10_vector_addr
+
+10$:
+	cp	#11
+	jr	nz, 11$
+	pop	af
+	jp	__int11_vector_addr
+
+11$:
+	cp	#12
+	jr	nz, 12$
+	pop	af
+	jp	__int12_vector_addr
+
+12$:
+	cp	#13
+	jr	nz, 13$
+	pop	af
+	jp	__int13_vector_addr
+
+13$:
+	cp	#14
+	jr	nz, 14$
+	pop	af
+	jp	__int14_vector_addr
+
+14$:
+	cp	#15
+	jr	nz, 15$
+	pop	af
+	jp	__int15_vector_addr
+
+15$:
+	cp	#16
+	jr	nz, 16$
+	pop	af
+	jp	__int16_vector_addr
+
+16$:
 	pop	af
 	ei
 	ret
 
+
 	.org	0x66
+
+__nmi_vector::
+
 	retn
 
-putchar:
-	ld	a,(0x1f01)
-	and	a,#0x20
-	jr	z,putchar
-	ld	a,l
-	ld	(0x1f00),a
-	ret
 
 	.org	0x100
 init:
@@ -108,23 +190,7 @@ init:
 	.area	_HOME
 	.area	_CODE
 
-	.area	_ISRSTART_INT0
-_INT0_vect_crt::
-	.area	_ISR_INT0
-	.area	_ISRFINAL_INT0
-	ret
-
-	.area	_ISRSTART_INT1
-_INT1_vect_crt::
-	.area	_ISR_INT1
-	.area	_ISRFINAL_INT1
-	ret
-
-	.area	_ISRSTART_TIMER1_COMPA
-_TIMER1_COMPA_vect_crt::
-	.area	_ISR_TIMER1_COMPA
-	.area	_ISRFINAL_TIMER1_COMPA
-	ret
+	.include	"isr.s"
 
         .area   _GSINIT
         .area   _GSFINAL
@@ -138,6 +204,14 @@ _TIMER1_COMPA_vect_crt::
 __clock::
 	ld	a,#2
         rst     0x08
+	ret
+
+putchar:
+	ld	a,(0x1f01)
+	and	a,#0x20
+	jr	z,putchar
+	ld	a,l
+	ld	(0x1f00),a
 	ret
 
 _exit::

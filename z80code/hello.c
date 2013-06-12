@@ -48,10 +48,15 @@ int main ()
 }
 
 
-void test(void) __interrupt
+void _int01_vector(void) __interrupt __naked
 {
     __asm
+        .area   _INT01_VECTOR
+        push    af
         ld      a,(0x1f0a)
+        pop     af
+        ei
+        ret
     __endasm;
 }
 
