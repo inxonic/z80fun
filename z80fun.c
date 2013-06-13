@@ -39,7 +39,7 @@
 #include <util/setbaud.h>
 
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define ADDR_LO_PIN PINA
 #define ADDR_HI_PIN (PINE & 0x7 | (PINB & 0xc) << 1)
@@ -103,7 +103,7 @@ int main ()
     // CTC mode, toggle OC on compare match, no prescaling
     TCCR0 = _BV(WGM01) | _BV(COM00) | _BV(CS00);
 
-    OCR0 = 32;
+    OCR0 = 20;
 
     // set PB0(OC0) as output pin
     DDRB |= _BV(PB0);
@@ -202,7 +202,7 @@ int main ()
 
                     else if ( addr_lo == 0x0a )
                     {
-                        if ( DEBUG ) DEBUG_PORT ^= _BV(DEBUG_PIN);
+                        //if ( DEBUG ) DEBUG_PORT ^= _BV(DEBUG_PIN);
 
                         DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
                     }
