@@ -12,7 +12,10 @@ This is of course just a fun project with little practical sense.
 * There is AVR code that provides ROM, RAM and access to the USART.
 * The system has 6k Bytes of ROM and 384 Bytes of RAM.
 * There is a really basic Z80 platform support library.
+* The Z80 runs at 1/40 the speed of the AVR which is 200 kHz at 8 MHz.
+* AVR interrupts can be forwarded to ISRs on the Z80.
 * There is a Z80 example program written in C that can read and write strings via the USART.
+* The Z80 example code has been extended to handle the timer interrupt.
 
 ## Hardware
 
@@ -76,6 +79,9 @@ This is of course just a fun project with little practical sense.
                           |    |    |    |    |
                          _|_  _|_  _|_  _|_  _|_
 ```
+
+Note: Before commit `addd1a97c2` the HALT pin has been connected to +5V by
+mistake. This might cause a short circuit and must be avoided!
 
 Note: I've changed the wiring a bit after commit `027f9489e4`. One must not mix
 older AVR code with the current wiring as there are conflicting output pins.

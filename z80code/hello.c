@@ -10,6 +10,8 @@ without any warranty.
 #include <string.h>
 #include <stdlib.h>
 
+#include <z80lib.h>
+
 
 static unsigned char count = 32;
 
@@ -18,10 +20,13 @@ int talk ()
 {
     char name[32];
 
-    __asm
-        ld a,#0xff
-        ld (0x1f09),a
-    __endasm;
+
+    IO_PORT_DDR = 0x02;
+
+    INTR_CTRL = 0x00;
+
+    ei();
+
 
     for (;;)
     {
@@ -32,11 +37,6 @@ int talk ()
         printf("%05d: Hello, %s!\r\n\r\n", count, name);
 
         count += 2;
-
-        __asm
-            ld a,(#_count)
-            ld (0x1f08),a
-        __endasm;
     }
 }
 
@@ -48,4 +48,17 @@ int main ()
 }
 
 
-// vim: ts=4 sw=4 et
+void _int01_vector(void) __interrupt __naked
+{
+    __asm
+        .area   _INT01_VECTOR
+        push    af
+        ld      a,(0x1f0a)
+        pop     af
+        ei
+        ret
+    __endasm;
+}
+
+
+// vim: et si sw=4 ts=4

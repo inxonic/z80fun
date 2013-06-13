@@ -19,10 +19,14 @@
 
 
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include <avr/io.h>
 #include <avr/sfr_defs.h>
 #include <avr/pgmspace.h>
+#include <avr/interrupt.h>
+
+#include <util/atomic.h>
 
 
 #include "z80rom.h"
@@ -66,10 +70,17 @@
 #define RAM_ADDR 0x1800
 #define RAM_SIZE 0x180
 
-#define IO_PORT_MASK 0xf2
+#define IO_PORT_MASK 0x42
 #define IO_PORT_PORT PORTB
 #define IO_PORT_PIN PINB
 #define IO_PORT_DDR DDRB
+
+#define INTR_PORT PORTD
+#define INTR_DDR DDRD
+#define INTR_PIN PD3
+
+
+static volatile uint8_t last_interrupt, isr_temp;
 
 
 uint8_t ram[RAM_SIZE];
@@ -77,11 +88,14 @@ uint8_t ram[RAM_SIZE];
 
 int main ()
 {
-    uint8_t page, addr_lo;
+    uint8_t control, page, addr_lo, data;
 
     uint16_t addr;
 
-    uint8_t control;
+    bool enable_interrupts = false;
+
+
+    if (DEBUG) DEBUG_DDR |= _BV(DEBUG_PIN);
 
 
     // *** setup clock port ***
@@ -89,25 +103,27 @@ int main ()
     // CTC mode, toggle OC on compare match, no prescaling
     TCCR0 = _BV(WGM01) | _BV(COM00) | _BV(CS00);
 
-    OCR0 = 16;
+    OCR0 = 20;
 
     // set PB0(OC0) as output pin
-    DDRB |= _BV(0);
+    DDRB |= _BV(PB0);
+
+
+    // *** setup interrupt timer ***
+
+    // CTC mode, prescaling clk/256
+    TCCR1B = _BV(WGM12) | _BV(CS12);
+
+    OCR1AH = 16000UL / 256;
+    OCR1AL = 16000UL % 256;
+
+    TIMSK |= _BV(OCIE1A);
 
     
-    // *** setup control bus ports ***
+    // *** setup external interrupt
 
-    RESET_PORT &= ~_BV(RESET_PIN);
-    RESET_DDR |= _BV(RESET_PIN);
-
-    if ( DEBUG ) DEBUG_DDR |= _BV(DEBUG_PIN);
-
-    _delay_ms(10);
-    _delay_ms(10);
-    _delay_ms(10);
-    _delay_ms(10);
-
-    RESET_PORT |= _BV(RESET_PIN);
+    MCUCR |= _BV(ISC01) | _BV(ISC00);
+    GICR |= _BV(INT0);
 
 
     // *** setup serial port ***
@@ -119,6 +135,25 @@ int main ()
     UBRRL = UBRRL_VALUE;
 
 
+    // *** setup interrupt pin ***
+    
+    INTR_PORT |= _BV(INTR_PIN);
+    INTR_DDR |= _BV(INTR_PIN);
+
+
+    // *** setup and release reset pin ***
+
+    RESET_PORT &= ~_BV(RESET_PIN);
+    RESET_DDR |= _BV(RESET_PIN);
+
+    _delay_ms(10);
+    _delay_ms(10);
+    _delay_ms(10);
+    _delay_ms(10);
+
+    RESET_PORT |= _BV(RESET_PIN);
+
+
     // *** main loop ***
 
     for (;;)
@@ -127,51 +162,69 @@ int main ()
 
         if ( !( control & _BV(RD_PIN) ) )
         {
-            if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
-
-            page = ADDR_HI_PIN;
-            addr_lo = ADDR_LO_PIN;
-            addr = page << 8 | addr_lo;
-
-            if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
             {
-                DATA_PORT = ram[addr - RAM_ADDR];
+                page = ADDR_HI_PIN;
+                addr_lo = ADDR_LO_PIN;
+                addr = page << 8 | addr_lo;
+
+                if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
+                {
+                    DATA_PORT = ram[addr - RAM_ADDR];
+                }
+
+                else if ( page < ROM_PAGES )
+                {
+                    DATA_PORT = pgm_read_byte(&(z80rom[addr]));
+                }
+
+                else if ( page == MMIO_PAGE )
+                {
+                    if ( addr_lo == 0x00 )
+                    {
+                        DATA_PORT = UDR;
+                    }
+
+                    else if ( addr_lo == 0x01 )
+                    {
+                        DATA_PORT = UCSRA;
+                    }
+
+                    else if ( addr_lo == 0x08 )
+                    {
+                        DATA_PORT = IO_PORT_PORT & IO_PORT_MASK;
+                    }
+
+                    else if ( addr_lo == 0x09 )
+                    {
+                        DATA_PORT = IO_PORT_DDR & IO_PORT_MASK;
+                    }
+
+                    else if ( addr_lo == 0x0a )
+                    {
+                        //if ( DEBUG ) DEBUG_PORT ^= _BV(DEBUG_PIN);
+
+                        DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
+                    }
+
+                    else if ( addr_lo == 0x10 )
+                    {
+                        DATA_PORT = last_interrupt;
+                        enable_interrupts = true;
+
+                        //if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
+                    }
+                }
+
+                DATA_DDR = 0xff;
             }
 
-            else if ( page < ROM_PAGES )
+            if ( enable_interrupts )
             {
-                DATA_PORT = pgm_read_byte(&(z80rom[addr]));
+                INTR_PORT |= _BV(INTR_PIN);
+                sei();
+                enable_interrupts = false;
             }
-
-            else if ( page == MMIO_PAGE )
-            {
-                if ( addr_lo == 0x00 )
-                {
-                    DATA_PORT = UDR;
-                }
-
-                else if ( addr_lo == 0x01 )
-                {
-                    DATA_PORT = UCSRA;
-                }
-
-                else if ( addr_lo == 0x08 )
-                {
-                    DATA_PORT = IO_PORT_PORT & IO_PORT_MASK;
-                }
-
-                else if ( addr_lo == 0x09 )
-                {
-                    DATA_PORT = IO_PORT_DDR & IO_PORT_MASK;
-                }
-
-                else if ( addr_lo == 0x0a )
-                {
-                    DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
-                }
-            }
-
-            DATA_DDR = 0xff;
 
             loop_until_bit_is_set(CONTROL_PIN, RD_PIN);
 
@@ -181,46 +234,80 @@ int main ()
 
         else if ( !( control & _BV(WR_PIN) ) )
         {
-            page = ADDR_HI_PIN;
-            addr_lo = ADDR_LO_PIN;
-            addr = page << 8 | addr_lo;
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+            {
+                page = ADDR_HI_PIN;
+                addr_lo = ADDR_LO_PIN;
+                addr = page << 8 | addr_lo;
+
+                data = DATA_PIN;
+            }
 
             if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
             {
-                ram[addr - RAM_ADDR] = DATA_PIN;
+                ram[addr - RAM_ADDR] = data;
             }
 
             else if ( page == MMIO_PAGE )
             {
                 if ( addr_lo == 0x00 )
                 {
-                    UDR = DATA_PIN;
+                    UDR = data;
                 }
 
                 else if ( addr_lo == 0x01 )
                 {
-                    UCSRA = DATA_PIN & ~_BV(U2X) & ~_BV(MPCM);
+                    UCSRA = data & ~_BV(U2X) & ~_BV(MPCM);
                 }
 
                 else if ( addr_lo == 0x08 )
                 {
-                    IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
+                    IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK | data & IO_PORT_MASK;
+
                 }
 
                 else if ( addr_lo == 0x09 )
                 {
-                    IO_PORT_DDR = IO_PORT_DDR & ~IO_PORT_MASK | DATA_PIN & IO_PORT_MASK;
+                    IO_PORT_DDR = IO_PORT_DDR & ~IO_PORT_MASK | data & IO_PORT_MASK;
+                }
+
+                else if ( addr_lo == 0x10 )
+                {
+                    INTR_PORT |= _BV(INTR_PIN);
+                    sei();
                 }
             }
 
             loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
         }
 
-        if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
+        //if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
 
     }
 
 }
 
 
-// vim: ts=4 sw=4 et
+#define ISR_RELAY(vector) \
+ISR(vector, ISR_NAKED) \
+{ \
+    __asm__ \
+    ( \
+        "sts isr_temp, r16"        "\n\t" \
+        "ldi r16, %0"              "\n\t" \
+        "sts last_interrupt, r16"  "\n\t" \
+        "lds r16, isr_temp"        "\n\t" \
+        "cbi %1, %2"               "\n\t" \
+        "ret"                      "\n\t" \
+        : \
+        : "I" (vector ## _num), "I" (_SFR_IO_ADDR(INTR_PORT)), "I" (INTR_PIN)  \
+    ); \
+}
+
+
+ISR_RELAY(INT0_vect);
+
+ISR_RELAY(TIMER1_COMPA_vect);
+
+
+// vim: et si sw=4 ts=4

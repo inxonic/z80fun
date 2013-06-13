@@ -5,19 +5,26 @@
 
 
 TARGETS=	crt0.rel z80lib.lib
-Z80LIB_OBJECTS=	getchar.rel
+Z80LIB_OBJECTS=	getchar.rel mmio.rel
 
 AS=		sdcc-sdasz80
+
 AR=		sdcc-sdar
+
+CC=		sdcc-sdcc
+CFLAGS=		-mz80
 
 
 all:		$(TARGETS)
 
 clean:
-		$(RM) $(TARGETS) *.lst *.rel *.sym
+		$(RM) $(TARGETS) *.rel *.asm *.lst *.map *.noi *.sym *.lk
 
 %.rel : %.s
 		$(AS) $(ASFLAGS) -los $@ $<
+
+%.rel : %.c
+		$(CC) $(CFLAGS) -c $<
 
 
 z80lib.lib:	z80lib.lib($(Z80LIB_OBJECTS))

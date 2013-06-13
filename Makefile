@@ -16,7 +16,7 @@ OBJECTS=	z80rom.o z80fun.o
 
 CC=		avr-gcc
 
-CFLAGS=		-mmcu=$(MCU) -Os
+CFLAGS=		-mmcu=$(MCU) -Os -std=c99
 LDFLAGS=	-mmcu=$(MCU)
 
 OBJCOPY=	avr-objcopy
@@ -47,9 +47,12 @@ z80rom.bin:	$(Z80ROM)
 %.ihx : %.elf
 		$(OBJCOPY) $(OBJCOPYFLAGS) -O ihex $< $@
 
-isp: 		$(ISP_TARGET)
+isp:		$(ISP_TARGET)
 		$(UISP) $(UISPFLAGS) --erase
 		$(UISP) $(UISPFLAGS) --upload --verify if=$(ISP_TARGET)
+
+reset:
+		$(UISP) $(UISPFLAGS)
 
 clean:
 		rm -f $(TARGETS) *.elf *.o z80rom.bin z80rom.h
