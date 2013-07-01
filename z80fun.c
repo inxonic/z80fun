@@ -66,6 +66,7 @@
 #define ROM_PAGES 0x18
 
 #define MMIO_PAGE 0x1f
+#define MMIO_SFR_OFFSET 0xc0
 
 #define RAM_ADDR 0x1800
 #define RAM_SIZE 0x180
@@ -168,7 +169,38 @@ int main ()
                 addr_lo = ADDR_LO_PIN;
                 addr = page << 8 | addr_lo;
 
-                if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
+                if ( page == MMIO_PAGE )
+                {
+                    switch ( addr_lo )
+                    {
+                        case 0x00:
+                            DATA_PORT = UDR;
+                            break;
+
+                        case 0x01:
+                            DATA_PORT = UCSRA;
+                            break;
+
+                        case 0x08:
+                            DATA_PORT = IO_PORT_PORT & IO_PORT_MASK;
+                            break;
+
+                        case 0x09:
+                            DATA_PORT = IO_PORT_DDR & IO_PORT_MASK;
+                            break;
+
+                        case 0x0a:
+                            DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
+                            break;
+
+                        case 0x10:
+                            DATA_PORT = last_interrupt;
+                            enable_interrupts = true;
+                            break;
+                    }
+                }
+
+                else if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
                 {
                     DATA_PORT = ram[addr - RAM_ADDR];
                 }
@@ -176,44 +208,6 @@ int main ()
                 else if ( page < ROM_PAGES )
                 {
                     DATA_PORT = pgm_read_byte(&(z80rom[addr]));
-                }
-
-                else if ( page == MMIO_PAGE )
-                {
-                    if ( addr_lo == 0x00 )
-                    {
-                        DATA_PORT = UDR;
-                    }
-
-                    else if ( addr_lo == 0x01 )
-                    {
-                        DATA_PORT = UCSRA;
-                    }
-
-                    else if ( addr_lo == 0x08 )
-                    {
-                        DATA_PORT = IO_PORT_PORT & IO_PORT_MASK;
-                    }
-
-                    else if ( addr_lo == 0x09 )
-                    {
-                        DATA_PORT = IO_PORT_DDR & IO_PORT_MASK;
-                    }
-
-                    else if ( addr_lo == 0x0a )
-                    {
-                        //if ( DEBUG ) DEBUG_PORT ^= _BV(DEBUG_PIN);
-
-                        DATA_PORT = IO_PORT_PIN & IO_PORT_MASK;
-                    }
-
-                    else if ( addr_lo == 0x10 )
-                    {
-                        DATA_PORT = last_interrupt;
-                        enable_interrupts = true;
-
-                        //if ( DEBUG ) DEBUG_PORT |= _BV(DEBUG_PIN);
-                    }
                 }
 
                 DATA_DDR = 0xff;
@@ -243,45 +237,42 @@ int main ()
                 data = DATA_PIN;
             }
 
-            if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
+            if ( page == MMIO_PAGE )
+            {
+                switch ( addr_lo )
+                {
+                    case 0x00:
+                        UDR = data;
+                        break;
+
+                    case 0x01:
+                        UCSRA = data & ~_BV(U2X) & ~_BV(MPCM);
+                        break;
+
+                    case 0x08:
+                        IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK
+                            | data & IO_PORT_MASK;
+                        break;
+
+                    case 0x09:
+                        IO_PORT_DDR = IO_PORT_DDR & ~IO_PORT_MASK
+                            | data & IO_PORT_MASK;
+                        break;
+
+                    case 0x10:
+                        INTR_PORT |= _BV(INTR_PIN);
+                        sei();
+                        break;
+                }
+            }
+
+            else if ( addr >= RAM_ADDR && addr < RAM_ADDR + RAM_SIZE )
             {
                 ram[addr - RAM_ADDR] = data;
             }
 
-            else if ( page == MMIO_PAGE )
-            {
-                if ( addr_lo == 0x00 )
-                {
-                    UDR = data;
-                }
-
-                else if ( addr_lo == 0x01 )
-                {
-                    UCSRA = data & ~_BV(U2X) & ~_BV(MPCM);
-                }
-
-                else if ( addr_lo == 0x08 )
-                {
-                    IO_PORT_PORT = IO_PORT_PORT & ~IO_PORT_MASK | data & IO_PORT_MASK;
-
-                }
-
-                else if ( addr_lo == 0x09 )
-                {
-                    IO_PORT_DDR = IO_PORT_DDR & ~IO_PORT_MASK | data & IO_PORT_MASK;
-                }
-
-                else if ( addr_lo == 0x10 )
-                {
-                    INTR_PORT |= _BV(INTR_PIN);
-                    sei();
-                }
-            }
-
             loop_until_bit_is_set(CONTROL_PIN, WR_PIN);
         }
-
-        //if ( DEBUG ) DEBUG_PORT &= ~_BV(DEBUG_PIN);
 
     }
 
