@@ -25,6 +25,7 @@
 #include <avr/sfr_defs.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
+#include <avr/eeprom.h>
 
 #include <util/atomic.h>
 
@@ -33,7 +34,7 @@
 
 
 #define F_CPU 8000000UL
-#define BAUD 1200
+#define BAUD 9600
 
 #include <util/delay.h>
 #include <util/setbaud.h>
@@ -98,6 +99,9 @@ int main ()
 
     if (DEBUG) DEBUG_DDR |= _BV(DEBUG_PIN);
 
+
+    // *** oscillator calibration ***
+    OSCCAL = eeprom_read_byte(0);
 
     // *** setup clock port ***
 
