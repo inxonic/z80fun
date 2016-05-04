@@ -5,7 +5,9 @@
 
 
 MCU=		atmega8515
-DPROG=		stk200
+DPROG=		usbtiny
+
+OSCCAL=		0x9f
 
 ISP_TARGET=	z80fun.ihx
 
@@ -22,8 +24,8 @@ LDFLAGS=	-mmcu=$(MCU)
 OBJCOPY=	avr-objcopy
 OBJCOPYFLAGS=	-R .eeprom
 
-UISP=		uisp
-UISPFLAGS=	-dprog=$(DPROG) -dpart=$(MCU)
+AVRDUDE=	avrdude
+AVRDUDEFLAGS=	-p $(MCU) -c $(DPROG)
 
 
 all:		$(TARGETS)
@@ -48,11 +50,13 @@ z80rom.bin:	$(Z80ROM)
 		$(OBJCOPY) $(OBJCOPYFLAGS) -O ihex $< $@
 
 isp:		$(ISP_TARGET)
-		$(UISP) $(UISPFLAGS) --erase
-		$(UISP) $(UISPFLAGS) --upload --verify if=$(ISP_TARGET)
+		$(AVRDUDE) $(AVRDUDEFLAGS) -U flash:w:$(ISP_TARGET):i
+
+osccal:
+		$(AVRDUDE) $(AVRDUDEFLAGS) -U eeprom:w:$(OSCCAL):m
 
 reset:
-		$(UISP) $(UISPFLAGS)
+		$(AVRDUDE) $(AVRDUDEFLAGS)
 
 clean:
 		rm -f $(TARGETS) *.elf *.o z80rom.bin z80rom.h

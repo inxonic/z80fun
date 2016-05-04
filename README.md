@@ -107,11 +107,11 @@ And that's how it looks like:
 * AVR-GCC cross compiler
 * SDCC
 * SRecord
-* UISP
+* AVRDUDE (UISP in older versions)
 
 On a Fedora system simply type:
 ```
-yum install make avr-gcc sdcc srecord uisp
+yum install make avr-gcc sdcc srecord avrdude
 ```
 
 ### Remarks
